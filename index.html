@@ -151,7 +151,9 @@ res1: Int = -2147483648</pre></code>
   Math.abs(x) >= 0
 }</pre></code><pre><code class="nohighlight">[info] ! Falsified after 30 passed tests.
 [info] > ARG_0: -2147483648</pre></code>
-				  <div><p>Constrain generation with <code>==></code></p><pre class="fragment"><code class="nohighlight">forAll { x: Int =>
+				  <div><p>Constrain generation with <code>==></code></p><pre class="fragment"><code class="nohighlight">import org.scalacheck.Prop.BooleanOperators
+					
+forAll { x: Int =>
   x > Integer.MIN_VALUE ==>
   Math.abs(x) >= 0
 }</div></pre></code><pre class="fragment"><code class="nohighlight">[info] + Math.abs: OK, passed 100 tests.
@@ -206,7 +208,9 @@ forAll { (xs: List[Int]) => xs.length > 0 ==>
 	
 				  <h4>More examples</h4>
 				  <p>We could use <code>==></code> here again
-				  <p class="fragment">Or we could use a different generator for non-empty lists:</p></p><pre class="fragment"><code class="nohighlight">forAll(Gen.nonEmptyListOf(arbitrary[Int]),
+				  <p class="fragment">Or we could use a different generator for non-empty lists:</p></p><pre class="fragment"><code class="nohighlight">import org.scalacheck.Gen
+
+forAll(Gen.nonEmptyListOf(arbitrary[Int]),
        Gen.nonEmptyListOf(arbitrary[Int])) { (l1, l2) =>
   l1.length < (l1 ::: l2).length    
 }</pre></code><pre class="fragment"><code class="nohighlight">[info] + OK, passed 100 tests.</pre></code>
