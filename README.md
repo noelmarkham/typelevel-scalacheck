@@ -1,4 +1,11 @@
-# reveal.js [![Build Status](https://travis-ci.org/hakimel/reveal.js.svg?branch=master)](https://travis-ci.org/hakimel/reveal.js)
+# 47 Degrees Reveal.js Template Details
+
+- You can find more details on how to create a Reveal.js presentation at [The Reveal.js Github repo](https://github.com/hakimel/reveal.js/) and their [demo presentation](http://lab.hakim.se/reveal-js/)
+- You can also look at the source code of index.html
+- This template can be hosted by something like [Github Pages](https://pages.github.com/)
+- The LX Scala presentation on [Practical Scalacheck](http://noelmarkham.github.io/practical-scalacheck/index.html) shows what this template can do
+
+# reveal.js
 
 A framework for easily creating beautiful presentations using HTML. [Check out the live demo](http://lab.hakim.se/reveal-js/).
 
