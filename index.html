@@ -4,10 +4,10 @@
 	<head>
 		<meta charset="utf-8">
 
-		<title>47 Degrees Talk Title</title>
+		<title>Typelevel and ScalaCheck</title>
 
-		<meta name="description" content="TALK DESCRIPTION HERE">
-		<meta name="author" content="YOUR NAME HERE">
+		<meta name="description" content="A discussion about how to make the most of ScalaCheck using other Typelevel libraries">
+		<meta name="author" content="Noel Markham">
 
 		<meta name="apple-mobile-web-app-capable" content="yes">
 		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -41,26 +41,234 @@
 			<!-- Any section element inside of this container is displayed as a slide -->
 			<div class="slides">
 				<section class="main" data-background="#EF2824">
-					<h1>47 Degrees Reveal.js template</h1>
-					<p>Your Name Here (47 Degrees)</p>
+					<h1>Typelevel</h1>
+					<h1>and</h1>
+					<h1>ScalaCheck</h1>
+					<p>Noel Markham (47 Degrees)</p>
 					<div class="logo-main">
 					    <img src="img/brand_main.png" alt="">
 					</div>
 				</section>
 
 				<section>
-				  <aside class="notes">
-				    <p>You can add speaker notes heree</p>
-				  </aside>
-				  <h2>Template Details</h2>
-				  <p></p>
+				  <h2>Agenda</h2>
 				  <ul>
-				    <li>You can find more details on how to create a Reveal.js presentation at <a href="https://github.com/hakimel/reveal.js/">The Reveal.js Github repo</a> and their <a href="http://lab.hakim.se/reveal-js/">demo presentation</a></li>
-				    <li class="fragment">You can also look at the source code of this file (<code>index.html</code>) for this presentation, including speaker notes</li>
-				    <li class="fragment">This template can be hosted by something like <a href="https://pages.github.com/">Github Pages</a></li>
-				    <li class="fragment">The LX Scala presentation on <a href="http://noelmarkham.github.io/practical-scalacheck/index.html">Practical Scalacheck</a> shows what this template can do</li>
+				    <li>The Gen class</li>
+				    <li>Automatic arbitraries</li>
+				    <li>Constraining types</li>
+				    <li>Dates and times</li>
 				  </ul>
-				  <p class="fragment">That is all.</p>
+				  <p class="fragment">Assumptions</p>
+				  <ul>
+				    <li class="fragment">Have worked with ScalaCheck before</li>
+				    <li class="fragment">Have worked with Cats or Scalaz before <br/><i class="fragment">(or at least you know what a monad is)</i></li>
+				  </ul>
+				</section>
+
+				<section>
+				  <h2>Gen</h2>
+				  <h4 class="fragment">Works great with Cats</h4>
+				  <p class="fragment">Monad</p>
+				  <pre class="fragment"><code class="nohighlight">val genMonad: Gen[String] = for {
+  c <- Gen.alphaUpperChar
+  s <- Gen.nonEmptyListOf(Gen.alphaLowerChar)
+} yield (c :: s).mkString</code></pre>
+				</section>
+
+				<section>
+				  <h2>Gen</h2>
+				  <h4>Works great with Cats</h4>
+				  <p>Monad</p>
+				  <p>What about the laws?</p>
+				  <pre class="fragment"><code class="nohighlight">property("Monad law: Left identity") = forAll { (arbInt: Int, add: Int) =>
+  arbInt < (Integer.MAX_VALUE - add) ==> {
+    val f: Int => Gen[Int] = i => Monad[Gen].pure(i + add)
+
+    val m1 = Monad[Gen].pure(arbInt).flatMap(f)
+    val m2 = f(arbInt)
+    m1.sample ?= m2.sample
+  }
+}</code></pre>
+				  <p class="fragment">... and the other laws hold too, honest</p>
+				</section>
+
+				<section>
+				  <h2>Gen</h2>
+				  <h4>Works great with Cats</h4>
+				  <p class="fragment">Applicative</p>
+				  <pre class="fragment"><code class="nohighlight">val genApplicative: Gen[String] =
+     (Gen.alphaUpperChar |@| Gen.nonEmptyListOf(Gen.alphaLowerChar)).map {
+         (c, cs) =>
+
+  (c :: cs).mkString
+}</code></pre>
+
+                                  <p class="fragment">If you don't need a monad, don't use one!</p>
+				  <p class="fragment">See the 2015 Scala World talk, <a href="https://www.youtube.com/watch?v=GqmsQeSzMdw">Constraints liberate, liberties constrain</a></p>
+				</section>
+
+				<section>
+				  <h2>Gen</h2>
+				  <h4>Works great with Cats</h4>
+				  <p class="fragment">Monoid</p>
+				  <pre class="fragment"><code class="nohighlight">val upperId = Gen.listOfN(3, Gen.alphaUpperChar)
+val lowerId = Gen.listOfN(3, Gen.alphaLowerChar)
+
+forAll(upperId |+| lowerId) { compositeId =>
+  // ...
+}</code></pre>
+				  <p class="fragment">As long as <code>A</code> has a monoid, then <code>Gen[A]</code> has a monoid too.
+				</section>
+				<section>
+				  <h2>Gen</h2>
+				  <h4>Works great with Cats</h4>
+				  <p class="fragment">We're using the power of Cats to create more complicated generators from simple building blocks.</p>
+				  <p class="fragment">This is not ScalaCheck specific, this is simply functional programming!</p>
+				</section>
+
+				<section>
+				  <h2>Removing Arbitraries</h2>
+				  <h4 class="fragment">Boiler plate removal, like a boss</h4>
+				  <p class="fragment">
+				    We can use Shapeless's automatic typeclass derivation:
+				  </p>
+				  <pre class="fragment"><code class="nohighlight">"com.github.alexarchambault"
+             %% "scalacheck-shapeless_1.13" % "1.1.0-RC1"</code></pre>
+				</section>
+
+				<section>
+				  <h2>Using scalacheck-shapeless</h2>
+				  <h4>Boiler plate removal, like a boss</h4>
+				  <pre class="fragment"><code class="nohighlight">> test:console
+[info] Starting scala interpreter...
+[info]
+Welcome to Scala version 2.11.7 (Java HotSpot(TM) 64-Bit Server VM).
+Type in expressions to have them evaluated.
+Type :help for more information.
+
+scala> case class Coordinates(x: Int, y: Int, description: String)
+defined class Coordinates
+
+scala> import org.scalacheck.Shapeless._
+import org.scalacheck.Shapeless._
+
+scala> import org.scalacheck.Arbitrary._
+import org.scalacheck.Arbitrary._</code></pre>
+				</section>
+
+				<section>
+				  <h2>Using scalacheck-shapeless</h2>
+				  <h4>Boiler plate removal, like a boss</h4>
+<pre class="fragment"><code class="nohighlight">scala> arbitrary[Coordinates].sample
+res0: Option[Coordinates] = Some(Coordinates(0,537278256,쪗ܘ暎))
+
+scala> arbitrary[Coordinates].sample
+res1: Option[Coordinates] = Some(Coordinates(-1204620568,0,掑὏꺒))</code></pre>
+				</section>
+
+				<section>
+				  <h2>Using scalacheck-shapeless</h2>
+				  <p>
+				    This can derive <i>any</i> <code>Arbitrary[A]</code> as long as:
+				    <ul>
+				      <li class="fragment"><code>A</code> is a case class or sealed trait family of case classes</li>
+				      <li class="fragment">An implicit <code>Arbitrary</code> can be summoned for <code>A</code>'s constitent parts <i class="fragment">through automatic derivation or otherwise</i></li>
+				    </ul>
+				  </p>
+				  <p class="fragment">
+				    But beware: compile times can dramatically increase!
+				  </p>
+				</section>
+
+				<section>
+				  <h2>Constraining types</h2>
+				  <h4>What is the result of this property?</h4>
+				  <pre class="fragment"><code="nohighlight">property("Ordered integers") = forAll { (x: Int, y: Int, z: Int) => 
+  (x > 0 && y > 0 && z > 0) ==> {
+    val l = List(x, y, z).sorted
+    val min = l.head
+    val mid = l.drop(1).head
+    val max = l.last
+
+    (max - min >= 0) && max >= mid && mid >= min
+  }
+}</code></pre>
+
+                                <pre class="fragment"><code="nohighlight">[info] ! Constraints.Ordered integers:
+                Gave up after only 63 passed tests. 501 tests were discarded.</code></pre>
+				</section>
+
+				<section>
+				  <h2>Constraining types</h2>
+				  <h4>Take II</h4>
+				  <pre class="fragment"><code="nohighlight">import Gen._
+property("Ordered integers: II") = forAll(
+         posNum[Int], posNum[Int], posNum[Int]) {(x: Int, y: Int, z: Int) =>
+  val l = List(x, y, z).sorted
+  val min = l.head
+  val mid = l.drop(1).head
+  val max = l.last
+
+  (max - min >= 0) && max >= mid && mid >= min
+}</code></pre>
+
+                                <pre class="fragment"><code="nohighlight">[info] + Constraints.Ordered integers: II: OK, passed 100 tests.</code></pre>
+				<p class="fragment">Can we do better?</p>
+				</section>
+
+
+				<section>
+				  <h2>Constraining types</h2>
+				  <h4 class="fragment">Introducing Refined</h4>
+
+				  <pre class="fragment"><code class="nohighlight">import eu.timepit.refined.api.Refined
+import eu.timepit.refined.auto._
+import eu.timepit.refined.numeric._
+import eu.timepit.refined.scalacheck.numeric._
+
+property("Ordered integers: III") = forAll {
+  (x: Int Refined Positive,
+    y: Int Refined Positive,
+    z: Int Refined Positive) =>
+
+  val l = List(x: Int, y: Int, z: Int).sorted
+  val min = l.head
+  val mid = l.drop(1).head
+  val max = l.last
+
+  (max - min >= 0) && max >= mid && mid >= min
+}</code></pre>
+				<p class="fragment">Plenty more interesting refinements in the <a href="https://github.com/fthomas/refined">library</a>!</p>
+				</section>
+
+				<section>
+				  <h2>Dates and Times</h2>
+				  <h4 class="fragment">Introducing scalacheck-datetime</h4>
+				  <p class="fragment">A library for using sensible dates with ScalaCheck</p>
+
+				  <pre class="fragment"><code class="nohighlight">scala> val now = ZonedDateTime.now
+now: java.time.ZonedDateTime = 2016-09-01T10:31:40.801+01:00[Europe/London]
+
+scala> val generator = genDateTimeWithinRange(now, Duration.ofDays(7))
+generator: org.scalacheck.Gen[java.time.ZonedDateTime] =
+                                      org.scalacheck.Gen$$anon$5@34781a0f
+
+scala> (1 to 3).foreach(_ => println(generator.sample))
+Some(2016-09-06T06:48:42.275+01:00[Europe/London])
+Some(2016-09-05T03:20:26.826+01:00[Europe/London])
+Some(2016-09-06T06:06:35.392+01:00[Europe/London])</code></pre>
+				</section>
+				<section>
+				  <h2>Dates and Times</h2>
+				  <h4>Introducing scalacheck-datetime</h4>
+				  <p>Features:
+				    <ul>
+				      <li class="fragment">Works with both Joda time and Java 8's Date and Time API</li>
+				      <li class="fragment">Generates datetimes within a given range</li>
+				      <li class="fragment">Generates datetimes with a given granularity</li>
+				    </ul>
+				  </p>
+				  <p class="fragment">See more at <a href="https://47deg.github.io/scalacheck-datetime/">https://47deg.github.io/scalacheck-datetime</a></p>
 				</section>
 
 			</div>
